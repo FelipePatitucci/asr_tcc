@@ -53,6 +53,26 @@ def run_ffmpeg_command(command):
         raise e
 
 
+def fix_time(time_str: str) -> str:
+    """
+    Fix time string to have the format HH:MM:SS.xxx.
+
+    Parameters:
+    time_str (str): The time string to be fixed.
+
+    Returns:
+    str: The fixed time string.
+    """
+    size = len(time_str)
+    if size == 8:
+        time_str += ".000"
+    elif size > 12:
+        excess = size - 12
+        time_str = time_str[:-excess]
+
+    return time_str
+
+
 def split_video_by_quotes(
     table_name: str,
     video_path: str,
@@ -98,13 +118,16 @@ def split_video_by_quotes(
                 print(f"Error creating folder {curr_output_folder}: {e}")
                 continue
 
-    for i, row in enumerate(df.to_dicts(named=True)):
+    for i, row in enumerate(df.iter_rows(named=True)):
         curr_char = row["name"]
 
         # Get start and end times from the DataFrame (assuming times are in milliseconds)
         curr_ep = row["episode"]
-        start_time = str(row["start_time"])[:-3]
-        end_time = str(row["end_time"])[:-3]
+        start_time = fix_time(str(row["start_time"]))
+        end_time = fix_time(str(row["end_time"]))
+        print(
+            f"EP:{curr_ep:2d}; NAME:{curr_char:<7}; IDX:{i:3d}; {row['quote'][:15]:<15}; {start_time}; {end_time};"
+        )
 
         if len(start_time) != 12 or len(end_time) != 12:
             # sometimes polars parses incorrectly time columns
@@ -112,10 +135,6 @@ def split_video_by_quotes(
                 f"Parsed incorrectly ({start_time} or {end_time}). Skipping this quote."
             )
             continue
-
-        print(
-            f"EP:{curr_ep:2d}; NAME:{curr_char:7d}; IDX:{i:3d}; {row["quote"][:10]:10d}; {start_time}; {end_time};"
-        )
 
         output_filename = os.path.join(
             output_folder, curr_char, f"ep_{row['episode']}_segment_{i+1}.wav"
@@ -151,6 +170,6 @@ split_video_by_quotes(
     table_name,
     video_path,
     output_folder,
-    episodes=2,
+    episodes=3,
     characters=characters,
 )
