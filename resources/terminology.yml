@@ -1,0 +1,17 @@
+concepts:
+  - ASR:
+      - Automatic Speech Recognition
+  - MFCC:
+      - Mel Frequency Cepstral Coeffiecient (Davis and Mermelstein - 1980's)
+  - Cepstral:
+      - In Fourier analysis, the cepstrum is the result of computing the 
+      inverse Fourier transform (IFT) of the logarithm of the estimated signal spectrum.
+  - Signal Spectrum (Spectral Density):
+      - The power spectrum  of a continuous time signal describes 
+      the distribution of power into frequency components composing that signal.
+  - Periodogram:
+    - Is an estimate of the spectral density of a signal.
+  - STFT (NFFT):
+    - Short-Time Fourier-Transform (N-point FFT)
+  - NMF (Non-negative Matrix Factorization):
+    - Non-negative matrix factorization (NMF) is a matrix factorization technique

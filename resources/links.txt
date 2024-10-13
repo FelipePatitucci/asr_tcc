@@ -1,0 +1,29 @@
+# Guide on MFCC + Implementation and examples
+http://www.practicalcryptography.com/miscellaneous/machine-learning/tutorial-cepstrum-and-lpccs/
+http://www.practicalcryptography.com/miscellaneous/machine-learning/guide-mel-frequency-cepstral-coefficients-mfccs/
+https://github.com/jameslyons/python_speech_features
+https://python-speech-features.readthedocs.io/en/latest/
+(another nice guide about MFCC)
+https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+
+# Repos about NN models to do ASR
+(mostly vanilla CNN)
+https://github.com/Speaker-Identification/You-Only-Speak-Once
+(siamese NN)
+https://hackernoon.com/one-shot-learning-with-siamese-networks-in-pytorch-8ddaab10340e
+
+# Resources to clean audio and separate audio
+(website, works well, only direct upload, cannot do batches, great for tests)
+https://vocalremover.org/pt/
+(ultimate tool)
+https://github.com/Anjok07/ultimatevocalremovergui
+(demucs NN - facebook)
+https://colab.research.google.com/drive/1dC9nVxk3V_VPjUADsnFu8EiT-xnU1tGH?usp=sharing#scrollTo=gr9OJvf-tYyt
+https://github.com/adefossez/demucs
+
+# STFT
+https://brianmcfee.net/dstbook-site/content/ch09-stft/Framing.html
+
+# Historical features
+https://www.quora.com/Why-is-pre-emphasis-i-e-passing-the-speech-signal-through-a-first-order-high-pass-filter-required-in-speech-processing-and-how-does-it-work
+https://dsp.stackexchange.com/questions/17685/why-do-we-choose-44-1-khz-as-recording-sampling-rate

@@ -1,0 +1,8 @@
+Frame the signal into short frames.
+[Apply a window function such as the Hamming window to each frame]
+For each frame, do STFT and calculate the periodogram estimate of the power spectrum.
+Apply the mel filterbank to the power spectra, sum the energy in each filter.
+Take the logarithm of all filterbank energies.
+Take the DCT of the log filterbank energies. (used to decorrelate the coefficients)
+Keep DCT coefficients 2-13 (num_ceps), discard the rest.
+[One may apply sinusoidal liftering1 to the MFCCs to de-emphasize higher MFCCs]
