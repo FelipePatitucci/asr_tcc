@@ -229,7 +229,7 @@ def mfcc(
     preemph: float = 0.97,
     ceplifter: int = 0,
     append_energy: bool = True,
-    winfunc: Callable[[np.ndarray], np.ndarray] = lambda x: np.ones((x,)),
+    winfunc: Callable[[np.ndarray], np.ndarray] = np.hamming,
 ) -> np.ndarray:
     """Compute MFCC features from an audio signal.
 

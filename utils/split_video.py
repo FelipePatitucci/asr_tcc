@@ -1,14 +1,14 @@
 import subprocess
 import os
 from datetime import timedelta
+from pathlib import Path
 from time import time
 
-from get_subtitles import (
+from utils.get_subtitles import (
     export_table_to_csv,
-    get_relevant_characters,
     filter_data_from_csv,
 )
-from commands import cmd_clip_audio
+from utils.helpers import cmd_clip_audio, find_folder, resolve_str_path
 
 
 def milliseconds_to_time_string(ms, epsilon: int = 0):
@@ -75,12 +75,10 @@ def fix_time(time_str: str) -> str:
 
 def split_video_by_quotes(
     table_name: str,
-    video_path: str,
-    output_folder: str,
     episodes: list[int] | int = 1,
     min_duration: float = 1.5,
     max_duration: float = 7.0,
-    sample_rate: int = 44000,
+    sample_rate: int = 44100,
     characters: list[str] | None = None,
 ) -> None:
     """
@@ -88,18 +86,22 @@ def split_video_by_quotes(
 
     Parameters:
     table_name (str): Table name in the database containing the series data.
-    video_path (str): Path to the folder containing the video files.
-    output_folder (str): Path to the output folder where the audio files will be saved.
     episodes (list[int] | int): List of episode numbers to consider. Default is just the first episode.
     min_duration (float): Minumum segment duration for the quote to be considered. Default is 1.5 seconds.
     max_duration (float): Maximum segment duration for the quote to be considered. Default is 7.0 seconds.
-    sample_rate (int): Sample rate of the audio files. Default is 44000 Hz.
+    sample_rate (int): Sample rate of the audio files. Default is 44100 Hz.
     characters (list[str]): A list of characters to filter by. Defaults to None (all are considered).
     """
+    base_path = Path(f"../data/{table_name}").resolve()
+    if not Path.exists(base_path):
+        Path.mkdir(base_path, parents=True)
+
+    video_path = find_folder(f"data/{table_name}/videos")
+    output_folder = find_folder(f"data/{table_name}/characters")
 
     st = time()
     total_parsed = 0
-    file_path = f"data/{table_name}.csv"
+    file_path = resolve_str_path(f"data/{table_name}/{table_name}.csv")
 
     if not os.path.exists(file_path):
         export_table_to_csv(table_name, file_path)
@@ -110,16 +112,16 @@ def split_video_by_quotes(
 
     # create folder just once to avoid I/O
     for curr_char in characters:
-        curr_output_folder = os.path.join(output_folder, curr_char)
-        if not os.path.exists(curr_output_folder):
+        curr_output_folder = Path.joinpath(output_folder, curr_char.upper(), "samples")
+        if not Path.exists(curr_output_folder):
             try:
-                os.makedirs(curr_output_folder)
+                Path.mkdir(curr_output_folder, parents=True, exist_ok=True)
             except OSError as e:
                 print(f"Error creating folder {curr_output_folder}: {e}")
-                continue
+                raise e
 
     for i, row in enumerate(df.iter_rows(named=True)):
-        curr_char = row["name"]
+        curr_char = row["name"].upper()
 
         # Get start and end times from the DataFrame (assuming times are in milliseconds)
         curr_ep = row["episode"]
@@ -136,15 +138,18 @@ def split_video_by_quotes(
             )
             continue
 
-        output_filename = os.path.join(
-            output_folder, curr_char, f"ep_{row['episode']}_segment_{i+1}.wav"
+        output_filename = Path.joinpath(
+            output_folder,
+            curr_char.upper(),
+            "samples",
+            f"ep_{row['episode']}_segment_{i}.wav",
         )
-        if os.path.exists(output_filename):
+        if Path.exists(output_filename):
             continue
 
         # FFMPEG command to cut the video and apply any necessary filters
         command = cmd_clip_audio(
-            os.path.join(video_path, f"ep_{curr_ep}.mkv"),
+            Path.joinpath(video_path, f"ep_{curr_ep}.mkv"),
             output_filename,
             start_time,
             end_time,
@@ -155,21 +160,3 @@ def split_video_by_quotes(
 
     et = time()
     print(f"Took {et - st: .2f} seconds. Total parsed: {total_parsed}.")
-
-
-table_name = "sousou_no_frieren"
-video_path = "data/videos"
-output_folder = "data/characters"
-characters = get_relevant_characters(
-    table_name=table_name,
-    min_duration=1.5,
-    max_duration=7.0,
-    min_total_time_spoken=180.0,
-)
-split_video_by_quotes(
-    table_name,
-    video_path,
-    output_folder,
-    episodes=3,
-    characters=characters,
-)

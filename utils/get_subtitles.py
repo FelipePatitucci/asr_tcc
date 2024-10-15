@@ -1,8 +1,11 @@
 import os
+from pathlib import Path
 
 import psycopg2
 import polars as pl
 from dotenv import load_dotenv
+
+from .helpers import resolve_str_path
 
 load_dotenv()
 user = os.getenv("USER")
@@ -100,7 +103,7 @@ def fetch_data(
 
 def export_table_to_csv(
     table_name: str = "sousou_no_frieren",
-    csv_file_path: str = None,
+    csv_file_path: str | Path = None,
     connection: psycopg2.extensions.connection = None,
     schema: dict[str, pl.DataType] = schema,
 ) -> None:
@@ -108,13 +111,16 @@ def export_table_to_csv(
     Runs a query in the postgres database and export the results to a CSV file.
 
     Parameters:
-    - table_name (str): Name of the table to be queried.
+    - table_name (str): Name of the table (on Postgres) to be queried.
     - csv_file_path (str): The path to the CSV file.
     - connection (psycopg2.connection): The database connection.
     - schema (dict[str, pl.DataType]): The schema of the DataFrame.
     """
     if csv_file_path is None:
-        csv_file_path = f"data/{table_name}.csv"
+        csv_file_path = resolve_str_path(f"data/{table_name}/{table_name}.csv")
+
+    elif isinstance(csv_file_path, str):
+        csv_file_path = resolve_str_path(csv_file_path)
 
     data = fetch_data(query_data.format(table_name=table_name), connection)
     df = pl.DataFrame(data, schema=schema, orient="row")
@@ -156,8 +162,47 @@ def get_relevant_characters(
     return [row[0] for row in data]
 
 
+def fix_overlapping_quotes(episode_df: pl.DataFrame) -> pl.DataFrame:
+    """
+    Removes overlapping quotes from an episode dataframe.
+
+    Parameters:
+    - episode_df (pl.DataFrame): The episode dataframe to be cleaned.
+
+    Returns:
+    - pl.DataFrame: The cleaned dataframe.
+    """
+    cleaned_rows = []
+    last_end_time = None
+    current_episode = 0
+    skipped_quote = False
+
+    for idx, row in enumerate(episode_df.iter_rows(named=True)):
+        if idx == 0:
+            last_end_time = row["end_time"]
+            current_episode = row["episode"]
+            cleaned_rows.append(row)
+            continue
+
+        if row["start_time"] < last_end_time and row["episode"] == current_episode:
+            # this means that we have overlapping quotes, hence its wiser to remove all of them
+            skipped_quote = True
+            continue
+
+        if skipped_quote:
+            cleaned_rows.pop()
+            skipped_quote = False
+
+        last_end_time = row["end_time"]
+        current_episode = row["episode"]
+        cleaned_rows.append(row)
+
+        # Convert the cleaned rows back to a dataframe
+    return pl.DataFrame(cleaned_rows, schema=episode_df.schema)
+
+
 def filter_data_from_csv(
-    csv_file: str,
+    csv_file: str | Path,
     episode_numbers: list[int] | int = 1,
     min_duration: float = 1.5,
     max_duration: float = 7.0,
@@ -176,6 +221,9 @@ def filter_data_from_csv(
     Returns:
     - pl.DataFrame: A DataFrame containing the filtered data.
     """
+    if isinstance(csv_file, str):
+        csv_file = resolve_str_path(csv_file)
+
     df = pl.read_csv(source=csv_file, schema=schema, has_header=True)
 
     if isinstance(episode_numbers, int):
@@ -191,5 +239,8 @@ def filter_data_from_csv(
     if characters is not None:
         # optionally, filter by characters
         filtered_df = filtered_df.filter(pl.col("name").is_in(characters))
+
+    # remove overlapping quotes
+    filtered_df = fix_overlapping_quotes(filtered_df)
 
     return filtered_df
