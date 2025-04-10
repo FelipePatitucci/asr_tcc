@@ -96,7 +96,7 @@ def get_mfcc_and_deltas_from_character(
 
     Parameters:
     character (str | Path): The name of the character or the path to the character's sample folder.
-        Note: the path should be absolute and end with "samples". The string should be the name of the character.
+        Note: the path should be absolute and end with "cleaned_samples". The string should be the name of the character.
     sample_rate (int): The sample rate of the audio file. Default is 44100.
 
     Returns:
@@ -108,7 +108,7 @@ def get_mfcc_and_deltas_from_character(
     data_dir = (
         character
         if isinstance(character, Path)
-        else find_folder(f"data/{table_name}/characters/{character}/samples")
+        else find_folder(f"data/{table_name}/characters/{character}/cleaned_samples")
     )
     files = [f for f in data_dir.iterdir() if f.is_file()]
 
@@ -189,16 +189,19 @@ def process_metrics_from_anime(
 table_name = "sousou_no_frieren"
 delta_n = 1
 # process_metrics_from_anime(
-#     table_name, characters_path="data/process_frieren/characters", delta_n=delta_n
+#     table_name, characters_path="data/sousou_no_frieren/characters", delta_n=delta_n
 # )
-# a = np.load(Path(f"data/{table_name}/characters/FRIEREN/metrics/mfcc.npy"))
-# b = np.load(Path(f"data/{table_name}/characters/FRIEREN/metrics/delta.npy"))
-# mf, delt = calculate_metrics_from_wav("teste_before.wav", delta_n)
+# char = "FRIEREN"
+# a = np.load(Path(f"data/{table_name}/characters/{char}/metrics/mfcc.npy"))
+# b = np.load(Path(f"data/{table_name}/characters/{char}/metrics/delta.npy"))
+# # mf, delt = calculate_metrics_from_wav("teste_after.wav", delta_n)
+# print(char)
+# print(char, a, b)
 # print(mse(a, mf[1:]))
 # print(mse(b, delt[1:]))
 
-owner = "FERN"
-candidates = ["HIMMEL", "HEITER", "EISEN", "FERN", "FRIEREN"]
+owner = "FRIEREN"
+candidates = ["HIMMEL", "FERN", "FRIEREN"]
 base_path = Path(f"data/{table_name}/characters")
 mfccs, deltas = (
     np.load(Path.joinpath(base_path, f"{owner}/metrics/mfcc.npy")),
@@ -208,21 +211,29 @@ mfccs, deltas = (
 # base_path = Path(f"data/{table_name}/characters")
 results = {}
 for candidate in candidates:
-    if candidate == "FRIEREN":
-        base_path = Path("data/process_frieren/characters")
-
     errors_mfcc = []
-    candidate_path = Path.joinpath(base_path, f"{candidate}/samples")
+    candidate_path = Path.joinpath(base_path, f"{candidate}/cleaned_samples")
     files = [f for f in candidate_path.iterdir() if f.is_file()]
     for file in files:
         mfc, _ = calculate_metrics_from_wav(file, delta_n)
-        errors_mfcc.append(mse(mfccs, mfc[1:]))
+        error = mse(mfccs, mfc[1:])
+        errors_mfcc.append(error)
 
     errors_mfcc = np.array(errors_mfcc)
     results[candidate] = {
+        "ALL": errors_mfcc,
         "MEAN": np.mean(errors_mfcc),
         "MIN": (np.min(errors_mfcc), np.argmin(errors_mfcc)),
         "MAX": (np.max(errors_mfcc), np.argmax(errors_mfcc)),
     }
 
+passes = {char: 0 for char in candidates}
 print(results)
+for char, vals in results.items():
+    for sample in vals["ALL"]:
+        if sample < results[owner]["MEAN"]:
+            passes[char] += 1
+print(passes)
+#     plt.plot(vals["ALL"])
+#     plt.title(char)
+#     plt.show()

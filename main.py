@@ -17,11 +17,14 @@ characters = get_relevant_characters(
     min_total_time_spoken=180.0,
 )
 # filters the underlying csv file and then splits the video by quotes
+characters = ["FRIEREN", "FERN", "HIMMEL"]
 split_video_by_quotes(
     table_name,
-    episodes=1,
+    episodes=[1, 2, 3],
     min_duration=min_duration,
     max_duration=max_duration,
     sample_rate=44100,
     characters=characters,
 )
+# next step is to input this files into UVR and get the cleaned samples
+# then, run the function to calculate the mcc and deltas for each character and save them as an nparray
