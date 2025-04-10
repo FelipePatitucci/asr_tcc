@@ -1,28 +1,11 @@
 from pathlib import Path
 from typing import Callable
 
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import wavfile
 
 from utils.mfcc_zero import mfcc, delta
 from utils.helpers import find_folder
-
-
-def plot_signal(
-    ts,
-    signal,
-    title: str = "Amplitude x Time for .wav with sr of 44.1k",
-    xlabel: str = "Time (s)",
-    ylabel: str = "Amplitude",
-):
-    plt.figure(figsize=(10, 6))
-    plt.plot(ts, signal, label="teste.wav", color="green")
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.title(title)
-    plt.legend()
-    plt.show()
 
 
 def pad_signal(
@@ -55,10 +38,15 @@ def pad_signal(
 def calculate_metrics_from_wav(
     wav_path: str,
     delta_n: int = 2,
+    should_pad: bool = True,
+    maximum_length: int = 5,
 ) -> tuple[np.ndarray, np.ndarray]:
     samplerate, signal = wavfile.read(wav_path)
     if len(signal.shape) > 1 and signal.shape[1] == 2:
         signal = signal.mean(axis=1)
+
+    if should_pad:
+        signal = pad_signal(signal, samplerate, maximum_length)
 
     mfcc_feat = mfcc(signal, samplerate)
     delta_mfcc = delta(mfcc_feat, delta_n)
@@ -188,17 +176,9 @@ def process_metrics_from_anime(
 
 table_name = "sousou_no_frieren"
 delta_n = 1
-# process_metrics_from_anime(
-#     table_name, characters_path="data/sousou_no_frieren/characters", delta_n=delta_n
-# )
-# char = "FRIEREN"
-# a = np.load(Path(f"data/{table_name}/characters/{char}/metrics/mfcc.npy"))
-# b = np.load(Path(f"data/{table_name}/characters/{char}/metrics/delta.npy"))
-# # mf, delt = calculate_metrics_from_wav("teste_after.wav", delta_n)
-# print(char)
-# print(char, a, b)
-# print(mse(a, mf[1:]))
-# print(mse(b, delt[1:]))
+process_metrics_from_anime(
+    table_name, characters_path="data/sousou_no_frieren/characters", delta_n=delta_n
+)
 
 owner = "FRIEREN"
 candidates = ["HIMMEL", "FERN", "FRIEREN"]
@@ -208,14 +188,16 @@ mfccs, deltas = (
     np.load(Path.joinpath(base_path, f"{owner}/metrics/delta.npy")),
 )
 
-# base_path = Path(f"data/{table_name}/characters")
+
 results = {}
 for candidate in candidates:
     errors_mfcc = []
     candidate_path = Path.joinpath(base_path, f"{candidate}/cleaned_samples")
     files = [f for f in candidate_path.iterdir() if f.is_file()]
     for file in files:
-        mfc, _ = calculate_metrics_from_wav(file, delta_n)
+        mfc, _ = calculate_metrics_from_wav(
+            wav_path=file, delta_n=delta_n, should_pad=False
+        )
         error = mse(mfccs, mfc[1:])
         errors_mfcc.append(error)
 

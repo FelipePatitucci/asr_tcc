@@ -197,7 +197,7 @@ def fix_overlapping_quotes(episode_df: pl.DataFrame) -> pl.DataFrame:
         current_episode = row["episode"]
         cleaned_rows.append(row)
 
-        # Convert the cleaned rows back to a dataframe
+    # Convert the cleaned rows back to a dataframe
     return pl.DataFrame(cleaned_rows, schema=episode_df.schema)
 
 

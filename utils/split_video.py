@@ -106,6 +106,7 @@ def split_video_by_quotes(
     if not os.path.exists(file_path):
         export_table_to_csv(table_name, file_path)
 
+    # filter csv to only get the relevant quotes according to the criteria
     df = filter_data_from_csv(
         file_path, episodes, min_duration, max_duration, characters
     )

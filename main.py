@@ -7,7 +7,7 @@ max_duration = 7.0  # seconds
 sample_rate = 44100  # Hz
 
 # if need to only export the table, run this
-# export_table_to_csv(table_name)
+export_table_to_csv(table_name=table_name)
 
 # filters the table directly on postgres to get the relevant characters
 characters = get_relevant_characters(
