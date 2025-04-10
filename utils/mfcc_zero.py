@@ -161,7 +161,7 @@ def fbank(
     signal: np.ndarray,
     samplerate: int = 44100,
     winlen: float = 0.02,
-    winstep: float = 0.01,
+    winstep: float = 0.01, 
     nfilt: int = 26,
     nfft: int = 1024,
     lowfreq: int = 0,
@@ -201,9 +201,9 @@ def fbank(
 
 
 def lifter(cepstra: np.ndarray, liftering: int = 22) -> np.ndarray:
-    """Apply a cepstral lifter the the matrix of cepstra. This has the effect of increasing the
-    magnitude of the high frequency DCT coeffs.
-
+    """Apply a cepstral lifter to the matrix of cepstra. This has the effect of increasing the
+    magnitude of the high frequency DCT coeffs
+    
     :param cepstra: the matrix of mel-cepstra, will be numframes * numcep in size.
     :param L: the liftering coefficient to use. Default is 22. L <= 0 disables lifter.
     """
@@ -219,13 +219,13 @@ def lifter(cepstra: np.ndarray, liftering: int = 22) -> np.ndarray:
 def mfcc(
     signal: np.ndarray,
     samplerate: int = 44100,
-    winlen: float = 0.02,
-    winstep: float = 0.01,
-    nfilt: int = 26,
+    winlen: float = 0.025,
+    winstep: float = 0.0125,
+    nfilt: int = 40,
     nfft: int = 1024,
-    numcep: int = 13,
+    numcep: int = 12,
     lowfreq: int = 0,
-    highfreq: int = None,
+    highfreq: int = None, 
     preemph: float = 0.97,
     ceplifter: int = 0,
     append_energy: bool = True,
@@ -234,12 +234,12 @@ def mfcc(
     """Compute MFCC features from an audio signal.
 
     :param signal: the audio signal from which to compute features. Should be an N*1 array
-    :param samplerate: the samplerate of the signal we are working with.
+    :param samplerate: the samplerate of the signal we are working with. 
     :param winlen: the length of the analysis window in seconds. Default is 0.025s (25 milliseconds)
     :param winstep: the step between successive windows in seconds. Default is 0.01s (10 milliseconds)
-    :param nfilt: the number of filters in the filterbank, default 26.
-    :param nfft: the FFT size. Default is 512.
-    :param numcep: the number of cepstrum to return, default 13
+    :param nfilt: the number of filters in the filterbank, default 40.
+    :param nfft: the FFT size. Default is 1024.
+    :param numcep: the number of cepstrum to return, default 12
     :param lowfreq: lowest band edge of mel filters. In Hz, default is 0.
     :param highfreq: highest band edge of mel filters. In Hz, default is samplerate/2
     :param preemph: apply preemphasis filter with preemph as coefficient. 0 is no filter. Default is 0.97.
@@ -250,6 +250,7 @@ def mfcc(
       You can use numpy window functions here e.g. winfunc=numpy.hamming
     :returns: A numpy array of size (NUMFRAMES by numcep) containing features. Each row holds 1 feature vector.
     """
+
     feat, energy = fbank(
         signal,
         samplerate,
@@ -265,10 +266,14 @@ def mfcc(
     feat = np.log(feat)
     feat = dct(feat, type=2, axis=1, norm="ortho")[:, :numcep]
     feat = lifter(feat, ceplifter)
+
     if append_energy:
         feat[:, 0] = np.log(
             energy
         )  # replace first cepstral coefficient with log of frame energy
+    
+    feat = feat / np.linalg.norm(feat, axis = 1, keepdims = True)
+    
     return feat
 
 

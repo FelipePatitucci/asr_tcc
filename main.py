@@ -1,5 +1,6 @@
 from utils.get_subtitles import export_table_to_csv, get_relevant_characters
 from utils.split_video import split_video_by_quotes
+import numpy as np
 
 table_name = "sousou_no_frieren"
 min_duration = 1.5  # seconds
@@ -26,5 +27,6 @@ split_video_by_quotes(
     sample_rate=44100,
     characters=characters,
 )
-# next step is to input this files into UVR and get the cleaned samples
+# next step is to input this files into UVR and get the cleaned samples.
+# Then, run the function to calculate the mcc and deltas for each character and save them as an nparray
 # then, run the function to calculate the mcc and deltas for each character and save them as an nparray
