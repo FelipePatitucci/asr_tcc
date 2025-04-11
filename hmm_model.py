@@ -121,8 +121,10 @@ def recognize_speaker(
 # vars
 table_name = "sousou_no_frieren"
 root_dir = "data/sousou_no_frieren/characters"
-data_folder_name = "cleaned_samples"
-speakers = ["FERN", "FRIEREN", "HIMMEL"]  # get_all_subfolders(root_dir)
+data_folder_name = "samples"
+# speakers = ["FERN", "FRIEREN", "HIMMEL"]
+speakers = get_all_subfolders(root_dir)
+min_samples = 10  # minimum number of samples for a speaker to be considered
 n_components = 5
 n_iter = 1000
 test_size = 0.2  # percentage in float
@@ -133,15 +135,23 @@ data = {}
 for speaker in speakers:
     speaker_folder = Path.joinpath(Path(root_dir), speaker, data_folder_name)
     all_files = [f for f in speaker_folder.iterdir() if f.is_file()]
+    if len(all_files) < min_samples:
+        print(
+            f"Insufficient samples ({len(all_files)}/{min_samples}) for speaker {speaker}!"
+        )
+        continue
     train_files, test_files = split_train_test(all_files, test_size)
     models[speaker] = create_speaker_model(speaker, train_files, n_components, n_iter)
     data[speaker] = test_files
 
 # testing
-matches = {speaker: {speaker: 0 for speaker in speakers} for speaker in speakers}
+matches = {
+    speaker: {speaker: 0 for speaker in models.keys()} for speaker in models.keys()
+}
 for speaker, test_files in data.items():
     for file in test_files:
-        recognized_speaker, score = recognize_speaker(file, models, speakers)
+        recognized_speaker, score = recognize_speaker(file, models, list(models.keys()))
         matches[speaker][recognized_speaker] += 1
+    matches[speaker]["accuracy"] = matches[speaker][speaker] / len(test_files)
 with open("matches.json", "w") as f:
     json.dump(matches, f)

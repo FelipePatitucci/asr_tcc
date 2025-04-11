@@ -22,7 +22,8 @@ query_data = """
         quote, 
         TO_CHAR(START_TIME, 'HH24:MI:SS.MS') AS START_TIME,
         TO_CHAR(END_TIME, 'HH24:MI:SS.MS') AS END_TIME,
-        extract(milliseconds from end_time - start_time) as duration_ms
+        extract(milliseconds from end_time - start_time) as duration_ms,
+        row_number() over (order by episode, start_time) as row_idx
     FROM anime_quotes.raw_quotes.{table_name}
     ORDER BY episode, start_time
 """
@@ -44,12 +45,14 @@ where total_time_seconds > %f
 order by total_time_seconds desc;
 """
 schema = {
+    "mal_id": pl.UInt32,
     "episode": pl.UInt16,
     "name": pl.Utf8,
     "quote": pl.Utf8,
-    "start_time": pl.Time,
-    "end_time": pl.Time,
+    "start_time": pl.Utf8,
+    "end_time": pl.Utf8,
     "duration_ms": pl.UInt32,
+    "row_idx": pl.UInt32,
 }
 
 
@@ -123,7 +126,7 @@ def export_table_to_csv(
         csv_file_path = resolve_str_path(csv_file_path)
 
     data = fetch_data(query_data.format(table_name=table_name), connection)
-    df = pl.DataFrame(data, schema=schema, orient="row")
+    df = pl.DataFrame(data, schema=schema, orient="row", infer_schema_length=1000)
     df.write_csv(csv_file_path)
     print(f"DataFrame exported to {csv_file_path}. {df.shape[0]} rows written.")
 

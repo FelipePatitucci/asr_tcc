@@ -94,7 +94,7 @@ def split_video_by_quotes(
     characters (list[str]): A list of characters to filter by. Defaults to None (all are considered).
     """
     # setup
-    base_path = Path(f"../data/{table_name}").resolve()
+    base_path = Path(f"./data/{table_name}").resolve()
     if not Path.exists(base_path):
         Path.mkdir(base_path, parents=True)
 
@@ -151,7 +151,7 @@ def split_video_by_quotes(
             output_folder,
             curr_char.upper(),
             "samples",
-            f"ep_{row['episode']}_segment_{i}.wav",
+            f"ep_{row['episode']}_segment_{row['row_idx']}.wav",  # this helps with the logic for avoiding overwriting
         )
         if Path.exists(output_filename):
             already_created += 1
