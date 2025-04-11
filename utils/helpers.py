@@ -1,7 +1,8 @@
 from pathlib import Path
+from typing import Optional
 
 
-def find_folder(folder_name: str) -> Path:
+def find_folder(folder_name: str, raise_error: bool = True) -> Optional[Path]:
     """
     Finds a folder by name in the current working directory or any parent directory.
 
@@ -31,9 +32,10 @@ def find_folder(folder_name: str) -> Path:
             return target_folder
 
     # If folder is not found, raise an error
-    raise FileNotFoundError(
-        f"Folder '{folder_name}' not found in the current directory or any parent directories."
-    )
+    if raise_error:
+        raise FileNotFoundError(
+            f"Folder '{folder_name}' not found in the current directory or any parent directories."
+        )
 
 
 def resolve_str_path(path: str) -> Path:
@@ -86,7 +88,7 @@ def cmd_clip_audio(
     sample_rate: int = 44100,
 ) -> list[str]:
     """
-    Convert a video file (.mkv) to a .wav audio file, change it to mono.
+    Convert a part of a video file (.mkv) to a .wav audio file, changing it to mono.
 
     Parameters:
     - video_path: str, path to the input .mkv video file
@@ -103,13 +105,13 @@ def cmd_clip_audio(
         start_time,  # Start time
         "-to",
         end_time,  # End time
-        "-vn",  # No video (extract only audio)
+        "-vn",  # No video
         "-ac",
-        "1",  # Convert to mono (1 audio channel)
+        "1",  # Convert to mono
         "-ar",
-        str(sample_rate),  # Set the sample rate to 44100 Hz (standard for WAV)
+        str(sample_rate),  # Set the sample rate to 44100 Hz
         "-acodec",
-        "pcm_s16le",  # Set the audio codec to PCM signed 16-bit little endian (standard for WAV),
+        "pcm_s16le",  # Set the audio codec to PCM signed 16-bit little endian
         "-hide_banner",
         "-loglevel",
         "16",  # Quiet the output

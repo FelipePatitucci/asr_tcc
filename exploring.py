@@ -174,48 +174,48 @@ def process_metrics_from_anime(
             print(f"Deltas: {deltas[1:]}")
 
 
-table_name = "sousou_no_frieren"
-delta_n = 1
-process_metrics_from_anime(
-    table_name, characters_path="data/sousou_no_frieren/characters", delta_n=delta_n
-)
+# table_name = "sousou_no_frieren"
+# delta_n = 1
+# process_metrics_from_anime(
+#     table_name, characters_path="data/sousou_no_frieren/characters", delta_n=delta_n
+# )
 
-owner = "FRIEREN"
-candidates = ["HIMMEL", "FERN", "FRIEREN"]
-base_path = Path(f"data/{table_name}/characters")
-mfccs, deltas = (
-    np.load(Path.joinpath(base_path, f"{owner}/metrics/mfcc.npy")),
-    np.load(Path.joinpath(base_path, f"{owner}/metrics/delta.npy")),
-)
+# owner = "FRIEREN"
+# candidates = ["HIMMEL", "FERN", "FRIEREN"]
+# base_path = Path(f"data/{table_name}/characters")
+# mfccs, deltas = (
+#     np.load(Path.joinpath(base_path, f"{owner}/metrics/mfcc.npy")),
+#     np.load(Path.joinpath(base_path, f"{owner}/metrics/delta.npy")),
+# )
 
 
-results = {}
-for candidate in candidates:
-    errors_mfcc = []
-    candidate_path = Path.joinpath(base_path, f"{candidate}/cleaned_samples")
-    files = [f for f in candidate_path.iterdir() if f.is_file()]
-    for file in files:
-        mfc, _ = calculate_metrics_from_wav(
-            wav_path=file, delta_n=delta_n, should_pad=False
-        )
-        error = mse(mfccs, mfc[1:])
-        errors_mfcc.append(error)
+# results = {}
+# for candidate in candidates:
+#     errors_mfcc = []
+#     candidate_path = Path.joinpath(base_path, f"{candidate}/cleaned_samples")
+#     files = [f for f in candidate_path.iterdir() if f.is_file()]
+#     for file in files:
+#         mfc, _ = calculate_metrics_from_wav(
+#             wav_path=file, delta_n=delta_n, should_pad=False
+#         )
+#         error = mse(mfccs, mfc[1:])
+#         errors_mfcc.append(error)
 
-    errors_mfcc = np.array(errors_mfcc)
-    results[candidate] = {
-        "ALL": errors_mfcc,
-        "MEAN": np.mean(errors_mfcc),
-        "MIN": (np.min(errors_mfcc), np.argmin(errors_mfcc)),
-        "MAX": (np.max(errors_mfcc), np.argmax(errors_mfcc)),
-    }
+#     errors_mfcc = np.array(errors_mfcc)
+#     results[candidate] = {
+#         "ALL": errors_mfcc,
+#         "MEAN": np.mean(errors_mfcc),
+#         "MIN": (np.min(errors_mfcc), np.argmin(errors_mfcc)),
+#         "MAX": (np.max(errors_mfcc), np.argmax(errors_mfcc)),
+#     }
 
-passes = {char: 0 for char in candidates}
-print(results)
-for char, vals in results.items():
-    for sample in vals["ALL"]:
-        if sample < results[owner]["MEAN"]:
-            passes[char] += 1
-print(passes)
+# passes = {char: 0 for char in candidates}
+# print(results)
+# for char, vals in results.items():
+#     for sample in vals["ALL"]:
+#         if sample < results[owner]["MEAN"]:
+#             passes[char] += 1
+# print(passes)
 #     plt.plot(vals["ALL"])
 #     plt.title(char)
 #     plt.show()

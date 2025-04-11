@@ -8,7 +8,7 @@ from utils.get_subtitles import (
     export_table_to_csv,
     filter_data_from_csv,
 )
-from utils.helpers import cmd_clip_audio, find_folder, resolve_str_path
+from utils.helpers import cmd_clip_audio, resolve_str_path
 
 
 def milliseconds_to_time_string(ms, epsilon: int = 0):
@@ -83,6 +83,7 @@ def split_video_by_quotes(
 ) -> None:
     """
     Split episodes of a video into separate audio files based on a DataFrame.
+    If .csv table is not created, it will be created. If the file already exists, it will be skipped.
 
     Parameters:
     table_name (str): Table name in the database containing the series data.
@@ -92,17 +93,21 @@ def split_video_by_quotes(
     sample_rate (int): Sample rate of the audio files. Default is 44100 Hz.
     characters (list[str]): A list of characters to filter by. Defaults to None (all are considered).
     """
+    # setup
     base_path = Path(f"../data/{table_name}").resolve()
     if not Path.exists(base_path):
         Path.mkdir(base_path, parents=True)
 
-    video_path = find_folder(f"data/{table_name}/videos")
-    output_folder = find_folder(f"data/{table_name}/characters")
+    video_path = Path.joinpath(base_path, "videos")
+    output_folder = Path.joinpath(base_path, "characters")
+    Path.mkdir(video_path, exist_ok=True)
+    Path.mkdir(output_folder, exist_ok=True)
 
     st = time()
     total_parsed = 0
     file_path = resolve_str_path(f"data/{table_name}/{table_name}.csv")
 
+    # generate .csv table if needed
     if not os.path.exists(file_path):
         export_table_to_csv(table_name, file_path)
 
@@ -121,6 +126,8 @@ def split_video_by_quotes(
                 print(f"Error creating folder {curr_output_folder}: {e}")
                 raise e
 
+    skipped_quotes = 0
+    already_created = 0
     for i, row in enumerate(df.iter_rows(named=True)):
         curr_char = row["name"].upper()
 
@@ -129,7 +136,7 @@ def split_video_by_quotes(
         start_time = fix_time(str(row["start_time"]))
         end_time = fix_time(str(row["end_time"]))
         print(
-            f"EP:{curr_ep:2d}; NAME:{curr_char:<7}; IDX:{i:3d}; {row['quote'][:15]:<15}; {start_time}; {end_time};"
+            f"EP:{curr_ep:2d}; NAME:{curr_char:<15}; IDX:{i:4d}; {row['quote'][:15]:<15}; {start_time}; {end_time};"
         )
 
         if len(start_time) != 12 or len(end_time) != 12:
@@ -137,6 +144,7 @@ def split_video_by_quotes(
             print(
                 f"Parsed incorrectly ({start_time} or {end_time}). Skipping this quote."
             )
+            skipped_quotes += 1
             continue
 
         output_filename = Path.joinpath(
@@ -146,6 +154,7 @@ def split_video_by_quotes(
             f"ep_{row['episode']}_segment_{i}.wav",
         )
         if Path.exists(output_filename):
+            already_created += 1
             continue
 
         # FFMPEG command to cut the video and apply any necessary filters
@@ -161,3 +170,5 @@ def split_video_by_quotes(
 
     et = time()
     print(f"Took {et - st: .2f} seconds. Total parsed: {total_parsed}.")
+    print(f"Already created: {already_created}.")
+    print(f"Skipped due to error: {skipped_quotes}.")
