@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 
@@ -142,4 +143,5 @@ for speaker, test_files in data.items():
     for file in test_files:
         recognized_speaker, score = recognize_speaker(file, models, speakers)
         matches[speaker][recognized_speaker] += 1
-print(matches)
+with open("matches.json", "w") as f:
+    json.dump(matches, f)
