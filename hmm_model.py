@@ -122,7 +122,6 @@ def recognize_speaker(
 table_name = "sousou_no_frieren"
 root_dir = "data/sousou_no_frieren/characters"
 data_folder_name = "samples"
-# speakers = ["FERN", "FRIEREN", "HIMMEL"]
 speakers = get_all_subfolders(root_dir)
 min_samples = 10  # minimum number of samples for a speaker to be considered
 n_components = 5
@@ -134,6 +133,7 @@ data = {}
 # training
 for speaker in speakers:
     speaker_folder = Path.joinpath(Path(root_dir), speaker, data_folder_name)
+    # add a way to only consider files that are in a certain range of time (ex: 3-5s) (this may affects results)
     all_files = [f for f in speaker_folder.iterdir() if f.is_file()]
     if len(all_files) < min_samples:
         print(
@@ -148,10 +148,16 @@ for speaker in speakers:
 matches = {
     speaker: {speaker: 0 for speaker in models.keys()} for speaker in models.keys()
 }
+details = {speaker: [] for speaker in models.keys()}
 for speaker, test_files in data.items():
     for file in test_files:
+        # add a way to only consider files that are in a certain range of time (ex: 3-5s)
         recognized_speaker, score = recognize_speaker(file, models, list(models.keys()))
+        if recognized_speaker != speaker:
+            details[speaker].append({str(file): recognized_speaker})
         matches[speaker][recognized_speaker] += 1
     matches[speaker]["accuracy"] = matches[speaker][speaker] / len(test_files)
 with open("matches.json", "w") as f:
     json.dump(matches, f)
+with open("details.json", "w") as f:
+    json.dump(details, f)

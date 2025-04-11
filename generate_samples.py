@@ -21,7 +21,7 @@ characters = get_relevant_characters(
 # characters = ["FRIEREN", "FERN", "HIMMEL"]
 split_video_by_quotes(
     table_name,
-    episodes=[1, 2, 3],
+    episodes=[1, 2, 3, 4, 5, 6],
     min_duration=min_duration,
     max_duration=max_duration,
     sample_rate=44100,
