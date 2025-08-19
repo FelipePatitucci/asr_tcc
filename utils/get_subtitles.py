@@ -178,9 +178,10 @@ def fix_overlapping_quotes(episode_df: pl.DataFrame) -> pl.DataFrame:
     cleaned_rows = []
     last_end_time = None
     current_episode = 0
-    skipped_quote = False
+    is_currently_overlapping = False
 
     for idx, row in enumerate(episode_df.iter_rows(named=True)):
+        pop_indicator = 0
         if idx == 0:
             last_end_time = row["end_time"]
             current_episode = row["episode"]
@@ -189,12 +190,14 @@ def fix_overlapping_quotes(episode_df: pl.DataFrame) -> pl.DataFrame:
 
         if row["start_time"] < last_end_time and row["episode"] == current_episode:
             # this means that we have overlapping quotes, hence its wiser to remove all of them
-            skipped_quote = True
-            continue
-
-        if skipped_quote:
             cleaned_rows.pop()
-            skipped_quote = False
+            is_currently_overlapping = True
+            pop_indicator = 1
+
+        # this means that the previous quote is the last overlaping quote of a sequence, so we should remove
+        if is_currently_overlapping and pop_indicator == 0:
+            cleaned_rows.pop()
+            is_currently_overlapping = False
 
         last_end_time = row["end_time"]
         current_episode = row["episode"]
@@ -232,8 +235,11 @@ def filter_data_from_csv(
     if isinstance(episode_numbers, int):
         episode_numbers = [episode_numbers]
 
+    # remove overlapping quotes (must be first due to logic)
+    filtered_df = fix_overlapping_quotes(df)
+
     # Filter by episode numbers and minimum duration
-    filtered_df = df.filter(
+    filtered_df = filtered_df.filter(
         (pl.col("episode").is_in(episode_numbers))
         & (pl.col("duration_ms") >= int(min_duration * 1000))
         & (pl.col("duration_ms") <= int(max_duration * 1000))
@@ -242,8 +248,5 @@ def filter_data_from_csv(
     if characters is not None:
         # optionally, filter by characters
         filtered_df = filtered_df.filter(pl.col("name").is_in(characters))
-
-    # remove overlapping quotes
-    filtered_df = fix_overlapping_quotes(filtered_df)
 
     return filtered_df

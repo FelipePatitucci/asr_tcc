@@ -1,4 +1,4 @@
-from utils.get_subtitles import get_relevant_characters  # , export_table_to_csv
+from utils.get_subtitles import get_relevant_characters, export_table_to_csv
 from utils.split_video import split_video_by_quotes
 
 table_name = "sousou_no_frieren"

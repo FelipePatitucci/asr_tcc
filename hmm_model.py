@@ -47,14 +47,13 @@ def extract_features(file_path: str, n_mfcc=13, delta_n=2, sample_rate=44100):
     return combined_features.T
 
 
-def split_train_test(file_paths: list[Path], test_size=0.2):
+def split_train_test(
+    file_paths: list[Path], test_size=0.2
+) -> tuple[list[Path], list[Path]]:
     """
     Split the file paths into training and testing data.
     """
-    logger.info(f"Splitting {len(file_paths)} files into training and testing...")
-    train_paths, test_paths = train_test_split(
-        file_paths, test_size=test_size, random_state=42
-    )
+    train_paths, test_paths = train_test_split(file_paths, test_size=test_size)
     logger.info(f"Train size: {len(train_paths)}, Test size: {len(test_paths)}")
 
     return train_paths, test_paths
@@ -90,74 +89,96 @@ def create_speaker_model(
         features.append(file_features)
 
     features = np.concatenate(features, axis=0)
-    # Train the HMM model with the extracted features
     model = train_hmm_model(features, n_components=n_components, n_iter=n_iter)
 
     return model
 
 
 def recognize_speaker(
-    test_file: str, models: dict[str, hmm.GaussianHMM], speakers: list[str]
-) -> tuple[str, float]:
+    test_file: str, models: dict[str, hmm.GaussianHMM], speakers: dict.keys
+) -> tuple[str, float, dict[str, float]]:
     """
     Recognize the speaker based on the test file by comparing it with models for all speakers.
     """
+    all_scores = {}
     test_features = extract_features(test_file)
 
     best_score = -np.inf
     recognized_speaker = None
 
-    # Compare the test features against each speaker's model
+    # Compare the test features against each speaker model
     for speaker in speakers:
         score = models[speaker].score(test_features)
+        all_scores[speaker] = score
 
         if score > best_score:
             best_score = score
             recognized_speaker = speaker
 
-    return recognized_speaker, best_score
+        sorted_scores = sorted(all_scores.items(), key=lambda x: x[1])
+
+    return recognized_speaker, best_score, sorted_scores
 
 
 # vars
 table_name = "sousou_no_frieren"
-root_dir = "data/sousou_no_frieren/characters"
-data_folder_name = "samples"
+root_dir = f"data/{table_name}/characters"
+data_folder_name = "samples"  # cleaned_samples (AI noise removed) or samples
 speakers = get_all_subfolders(root_dir)
-min_samples = 10  # minimum number of samples for a speaker to be considered
-n_components = 5
-n_iter = 1000
-test_size = 0.2  # percentage in float
+amount_sample_files = -1  # use to limit the amount of samples for training (-1 = all, some chars may have more than others)
+min_samples = 12  # minimum number of samples for a speaker to be considered
+test_size = 0.2
 models = {}
 data = {}
+run_all_files_for_test = False
+
+# hmm params
+n_components = 10
+n_iter = 3000
 
 # training
 for speaker in speakers:
     speaker_folder = Path.joinpath(Path(root_dir), speaker, data_folder_name)
-    # add a way to only consider files that are in a certain range of time (ex: 3-5s) (this may affects results)
+    # idea: add a way to only consider files that are in a certain range of time (ex: 3-5s) (this may affects results)
     all_files = [f for f in speaker_folder.iterdir() if f.is_file()]
     if len(all_files) < min_samples:
-        print(
+        logger.info(
             f"Insufficient samples ({len(all_files)}/{min_samples}) for speaker {speaker}!"
         )
         continue
     train_files, test_files = split_train_test(all_files, test_size)
+    train_files = (
+        train_files if amount_sample_files == -1 else train_files[:amount_sample_files]
+    )
     models[speaker] = create_speaker_model(speaker, train_files, n_components, n_iter)
-    data[speaker] = test_files
+    data[speaker] = all_files if run_all_files_for_test else test_files
 
 # testing
-matches = {
-    speaker: {speaker: 0 for speaker in models.keys()} for speaker in models.keys()
-}
-details = {speaker: [] for speaker in models.keys()}
+matches = {speaker: dict.fromkeys(models.keys(), 0) for speaker in models.keys()}
+details = dict.fromkeys(models.keys(), [])
+
 for speaker, test_files in data.items():
     for file in test_files:
         # add a way to only consider files that are in a certain range of time (ex: 3-5s)
-        recognized_speaker, score = recognize_speaker(file, models, list(models.keys()))
-        if recognized_speaker != speaker:
-            details[speaker].append({str(file): recognized_speaker})
+        recognized_speaker, score, all_scores = recognize_speaker(
+            test_file=file, models=models, speakers=models.keys()
+        )
         matches[speaker][recognized_speaker] += 1
-    matches[speaker]["accuracy"] = matches[speaker][speaker] / len(test_files)
-with open("matches.json", "w") as f:
+
+        if recognized_speaker != speaker:
+            details[speaker].append(
+                {
+                    str(file): {
+                        "recognized": recognized_speaker,
+                        "all_scores": all_scores,
+                    }
+                }
+            )
+
+    matches[speaker]["accuracy"] = round(matches[speaker][speaker] / len(test_files), 2)
+
+format_str = f"_ncomp={n_components}_iter={n_iter}_{data_folder_name}.json"
+with open(f"results/matches{format_str}", "w") as f:
     json.dump(matches, f)
-with open("details.json", "w") as f:
+with open(f"results/details{format_str}", "w") as f:
     json.dump(details, f)

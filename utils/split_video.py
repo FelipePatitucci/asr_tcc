@@ -11,7 +11,7 @@ from utils.get_subtitles import (
 from utils.helpers import cmd_clip_audio, resolve_str_path
 
 
-def milliseconds_to_time_string(ms, epsilon: int = 0):
+def milliseconds_to_time_string(ms, epsilon: int = 0) -> str:
     """
     Convert milliseconds to a formatted time string of the form hh:mm:ss:xxx.
 
@@ -21,28 +21,21 @@ def milliseconds_to_time_string(ms, epsilon: int = 0):
     Returns:
     str: The formatted time string.
     """
-    # Convert milliseconds to seconds
     seconds = ms / 1000.0
-    # Create a timedelta object
     td = timedelta(seconds=seconds) - timedelta(milliseconds=epsilon)
-    # Format the timedelta to a string, removing the days part and leading zeros
     time_str = str(td)
-    # Splitting the timedelta string to remove the microseconds part and keep only up to milliseconds
     hours, minutes, secs = time_str.split(":")
     try:
         secs, micros = secs.split(".")
     except ValueError:
-        # secs is an integer value
         micros = "000"
-    # Get the first three digits of the microseconds as milliseconds
     millis = micros[:3]
 
-    # Combine them into the final formatted string
     formatted_time_str = f"{int(hours):02}:{int(minutes):02}:{int(secs):02}.{millis}"
     return formatted_time_str
 
 
-def run_ffmpeg_command(command):
+def run_ffmpeg_command(command) -> None:
     """Helper function to run an FFMPEG command."""
     try:
         subprocess.run(command, check=True)
@@ -116,7 +109,7 @@ def split_video_by_quotes(
         file_path, episodes, min_duration, max_duration, characters
     )
 
-    # create folder just once to avoid I/O
+    # create folders once
     for curr_char in characters:
         curr_output_folder = Path.joinpath(output_folder, curr_char.upper(), "samples")
         if not Path.exists(curr_output_folder):
@@ -130,8 +123,6 @@ def split_video_by_quotes(
     already_created = 0
     for i, row in enumerate(df.iter_rows(named=True)):
         curr_char = row["name"].upper()
-
-        # Get start and end times from the DataFrame (assuming times are in milliseconds)
         curr_ep = row["episode"]
         start_time = fix_time(str(row["start_time"]))
         end_time = fix_time(str(row["end_time"]))
