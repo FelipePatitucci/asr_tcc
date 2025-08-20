@@ -123,29 +123,38 @@ def recognize_speaker(
 # vars
 table_name = "sousou_no_frieren"
 root_dir = f"data/{table_name}/characters"
-data_folder_name = "samples"  # cleaned_samples (AI noise removed) or samples
+data_folder_name = "samples"  # curated_sample or samples
 speakers = get_all_subfolders(root_dir)
 amount_sample_files = -1  # use to limit the amount of samples for training (-1 = all, some chars may have more than others)
-min_samples = 12  # minimum number of samples for a speaker to be considered
+min_samples = 10  # minimum number of samples for a speaker to be considered
 test_size = 0.2
 models = {}
 data = {}
 run_all_files_for_test = False
+filter_out_episodes = [1, 2]  # list of episodes to filter out
 
 # hmm params
-n_components = 10
-n_iter = 3000
+n_components = 15
+n_iter = 1000
 
 # training
 for speaker in speakers:
     speaker_folder = Path.joinpath(Path(root_dir), speaker, data_folder_name)
-    # idea: add a way to only consider files that are in a certain range of time (ex: 3-5s) (this may affects results)
     all_files = [f for f in speaker_folder.iterdir() if f.is_file()]
+    print(len(all_files))
+
+    if filter_out_episodes:
+        all_files = [
+            f for f in all_files if f.stem.split("_")[1] not in filter_out_episodes
+        ]
+        print(len(all_files))
+
     if len(all_files) < min_samples:
         logger.info(
             f"Insufficient samples ({len(all_files)}/{min_samples}) for speaker {speaker}!"
         )
         continue
+
     train_files, test_files = split_train_test(all_files, test_size)
     train_files = (
         train_files if amount_sample_files == -1 else train_files[:amount_sample_files]
@@ -155,9 +164,10 @@ for speaker in speakers:
 
 # testing
 matches = {speaker: dict.fromkeys(models.keys(), 0) for speaker in models.keys()}
-details = dict.fromkeys(models.keys(), [])
+details = {speaker: [] for speaker in models.keys()}
 
 for speaker, test_files in data.items():
+    logger.info(f"Testing speaker {speaker}...")
     for file in test_files:
         # add a way to only consider files that are in a certain range of time (ex: 3-5s)
         recognized_speaker, score, all_scores = recognize_speaker(
@@ -166,6 +176,7 @@ for speaker, test_files in data.items():
         matches[speaker][recognized_speaker] += 1
 
         if recognized_speaker != speaker:
+            logger.info(f"File {file} recognized as {recognized_speaker}")
             details[speaker].append(
                 {
                     str(file): {
@@ -182,3 +193,8 @@ with open(f"results/matches{format_str}", "w") as f:
     json.dump(matches, f)
 with open(f"results/details{format_str}", "w") as f:
     json.dump(details, f)
+
+# TODO: remove himmel (because his voice changes a lot due to age progression)
+# TODO: maybe remove heiter and flamme for the same age reason
+# TODO: add more samples from eps 7-12
+# TODO: create a "curated_samples" folder and manually filter out bad ones
