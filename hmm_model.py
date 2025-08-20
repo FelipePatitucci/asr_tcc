@@ -141,19 +141,17 @@ n_iter = 1000
 for speaker in speakers:
     speaker_folder = Path.joinpath(Path(root_dir), speaker, data_folder_name)
     all_files = [f for f in speaker_folder.iterdir() if f.is_file()]
-    print(len(all_files))
-
-    if filter_out_episodes:
-        all_files = [
-            f for f in all_files if f.stem.split("_")[1] not in filter_out_episodes
-        ]
-        print(len(all_files))
 
     if len(all_files) < min_samples:
         logger.info(
             f"Insufficient samples ({len(all_files)}/{min_samples}) for speaker {speaker}!"
         )
         continue
+
+    if filter_out_episodes:
+        all_files = [
+            f for f in all_files if int(f.stem.split("_")[1]) not in filter_out_episodes
+        ]
 
     train_files, test_files = split_train_test(all_files, test_size)
     train_files = (
